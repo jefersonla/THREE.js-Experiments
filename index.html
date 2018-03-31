@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset=utf-8>
+	<title>My first three.js app</title>
+	<style>
+		html, body {
+      margin: 0 auto;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+    }
+    body{
+      display: flex;
+      align-items: center;
+    }
+		canvas {
+      margin: 0 auto;
+      width: 800px !important;
+      height: 500px !important;
+    }
+	</style>
+</head>
+
+<body>
+
+  <script src="js/three.js"></script>
+  <script src="js/STLLoader.js"></script>
+  <script src="js/TrackballControls.js"></script>
+
+	<script>
+
+    // Global objects
+    var camera, scene, renderer, controls, axes;
+
+    // Objects positions
+    var objProperties = {
+      moldSG90 : {
+        position: {
+          x: 0,
+          y: 10,
+          z: 0
+        },
+        rotation: {
+          x: 0,
+          y: 0,
+          z: 0
+        }
+      }
+    };
+
+    // Init content and animate it's scene
+    init();
+    animate();
+
+    // Init function
+    function init(){
+
+      // Create a new scene
+      scene = new THREE.Scene();
+
+      // Create a new WebGLRenderer, set it's size and it's color
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(800, 500);
+      renderer.setClearColor(0xf5f5f5, 1);
+			renderer.setPixelRatio( window.devicePixelRatio );
+			renderer.gammaInput = true;
+			renderer.gammaOutput = true;
+			renderer.shadowMap.enabled = true;
+
+      // Antialias the shadows
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      // Hack to avoid warning display
+      renderer.context.getShaderInfoLog = function () { return '' };
+
+      // Create a new camera
+      camera = new THREE.PerspectiveCamera(50, 800 / 500, 1, 10000);
+      camera.position.set(90, 90, 90);
+      camera.lookAt(scene.position);
+
+      // Create a fake camera and render a custom frame just to update projection matrix
+      // of this camera and project the camera helper accordily
+      var fakeCamera = new THREE.PerspectiveCamera(50, 800 / 500, 1, 10000);
+      fakeCamera.position.set(90, 90, 90);
+      fakeCamera.lookAt(scene.position);
+      renderer.render(scene, fakeCamera);
+
+      // Add a camera helper to help with orientation
+      var cameraHelper = new THREE.CameraHelper( fakeCamera );
+      cameraHelper.matrixAutoUpdate = false;
+      scene.add( cameraHelper );
+
+      // Add a grid to help with orientation
+      var gridHelper = new THREE.GridHelper( 400, 40, 0x0000ff, 0x808080 );
+  		scene.add(gridHelper);
+
+      // Create an axis helper to help with orientation
+      axes = new THREE.AxesHelper(1000);
+      axes.position.y = 0.1;
+      scene.add(axes);
+
+      // Create an hemisphere light and add it to scene
+      var hemisphereLight = new THREE.HemisphereLight(0x443333, 0x111122);
+      scene.add(hemisphereLight);
+
+      // Create an spotlight, which can cast shadows
+      var spotLight = new THREE.SpotLight( 0xffffff );
+      spotLight.position.set( 100, 100, 100 );
+
+      // Enable shadow
+      spotLight.castShadow = true;
+
+      // Configure map size
+      spotLight.shadow.mapSize.width = 1024;
+      spotLight.shadow.mapSize.height = 1024;
+
+      // Configure shadow
+      spotLight.shadow.camera.near = 2;
+      spotLight.shadow.camera.far = 400;
+      spotLight.shadow.camera.fov = 1;
+
+      // Add spotlight to scene
+      scene.add(spotLight);
+
+      // Add a spotlight helper to help orientation
+      var spotLightHelper = new THREE.SpotLightHelper( spotLight );
+      scene.add( spotLightHelper );
+
+      // Create the loader for STL files
+      var loader = new THREE.STLLoader();
+
+      // Add a plane to represent ground on this scene
+      var planeGeometry = new THREE.PlaneBufferGeometry(400, 400, 32, 32);
+      var planeMaterial = new THREE.MeshStandardMaterial({ color: 0xfffffff });
+      var plane = new THREE.Mesh(planeGeometry, planeMaterial);
+      plane.rotation.x = THREE.Math.degToRad(-90);
+      plane.receiveShadow = true;
+      scene.add(plane);
+
+      // Create an array to organize every mesh
+      window.meshObjects = [];
+
+      // Add a event listener to all objects
+      function loadSTL(objName){
+
+        return ((geometry) => {
+
+          // Create material which is the apparence of the object
+          var material = new THREE.MeshPhongMaterial({
+            color: 0xCCC,
+            specular: 0x111111,
+            shininess: 200
+          });
+
+          // Join geometry and it's material to create the mesh
+          var mesh = new THREE.Mesh(geometry, material);
+
+          // Add shadow to the mesh
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+
+          // If this object has custom properties change them now
+          for(let objName in objProperties){
+            for(let propertyName in objProperties[objName]){
+              for(let propertyValue in objProperties[objName][propertyName]){
+                mesh[propertyName][propertyValue] = objProperties[objName][propertyName][propertyValue];
+              }
+            }
+          }
+
+          // Add the object to scene
+          window.meshObjects[objName] = mesh;
+          scene.add(mesh);
+
+        });
+
+      }
+
+      // STL file to be loaded
+      loader.load('./parts/leg_mold_sg90.stl', loadSTL("moldSG90"));
+
+      // Append the dom element to page
+      document.body.appendChild(renderer.domElement);
+
+      // Add a mouse controller for this scene
+      controls = new THREE.TrackballControls(camera, renderer.domElement);
+    }
+
+    // Animate scene
+    function animate(){
+
+      // Request this animation frame recursively
+      requestAnimationFrame(animate);
+
+      // Update controls
+      controls.update();
+
+      // Re-render this scene
+      render();
+    }
+
+    // Render scene content
+    function render(){
+      renderer.render(scene, camera);
+    }
+
+    /*
+    function CameraControl(renderer, camera, updateCallback) {
+      var _this = this;
+      this.camera = camera;
+      this.zoomMode = false;
+      this.press = false;
+      this.sensitivity = 0.4;
+
+      renderer.domElement.addEventListener('mousemove', function (event) {
+        if (!_this.press) {
+          return;
+        }
+
+        if (event.button == 0) {
+          camera.position.y -= event.movementY * _this.sensitivity;
+          camera.position.x -= event.movementX * _this.sensitivity;
+        }
+        else if (event.button == 2) {
+          camera.quaternion.y -= event.movementX * _this.sensitivity / 10;
+          camera.quaternion.x -= event.movementY * _this.sensitivity / 10;
+        }
+
+        //camera.lookAt(scene.position);
+        updateCallback();
+      });
+
+      renderer.domElement.addEventListener('mousedown', function () { _this.press = true; });
+      renderer.domElement.addEventListener('mouseup', function () { _this.press = false; });
+      renderer.domElement.addEventListener('mouseleave', function () { _this.press = false; });
+      document.addEventListener('keydown', function (event) {
+        if (event.key == 'Shift') {
+          _this.zoomMode = true;
+        }
+      });
+
+      document.addEventListener('keyup', function (event) {
+        if (event.key == 'Shift') {
+          _this.zoomMode = false;
+        }
+      });
+
+      renderer.domElement.addEventListener('mousewheel', function (event) {
+        if (_this.zoomMode) {
+          camera.fov += event.wheelDelta * _this.sensitivity;
+          camera.updateProjectionMatrix();
+        }
+        else {
+          camera.position.z += event.wheelDelta * _this.sensitivity;
+        }
+        updateCallback();
+      });
+    }
+    */
+
+    /*
+    function render(){
+      //var timer=Date.now() * 0.0005;
+      r=150;
+      camera.position.x= 0; // r * Math.cos(timer);
+      camera.position.z= r; // r * Math.sin(timer);
+      camera.lookAt(scene.position);
+      renderer.render(scene, camera);
+      renderer.setClearColor(0xf5f5f5, 1);
+    }
+    */
+
+    /*
+    // Create a scene that will hold all our elements
+    var scene = new THREE.Scene();
+
+    // Create a camera which define where we are looking at.
+    var camera = new THREE.PerspectiveCamera( 35, 800/500, 1, 10000 );
+    camera.position.set(3, 0.5, 3);
+    camera.lookAt(scene.position);
+
+    // Create a render and set the size
+    var renderer = new THREE.WebGLRenderer();
+    renderer.setClearColor(0xf5f5f5, 1);
+    renderer.setSize(800, 500);
+
+    // Create ambient light
+    var ambientLight = new THREE.AmbientLight(0x736F6E);
+    scene.add(ambientLight);
+
+    // Create directional light
+    var directionalLight=new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position = camera.position;
+    scene.add(directionalLight);
+
+    // Add the output of the renderer to the html body
+    document.body.appendChild( renderer.domElement );
+
+    // Create a STL Loader to loader STL files
+    var loader = new THREE.STLLoader();
+
+    // Add a listener to color every stl file loaded
+    loader.addEventListener('load', function (event){
+      var geometry=event.content;
+      var material=new THREE.MeshLambertMaterial({ ambient: 0xFBB917,color: 0xfdd017 });
+      var mesh=new THREE.Mesh(geometry, material);
+      scene.add(mesh);
+    });
+
+    // Load the STL file
+    loader.load("../leg1_mold_for_SG90.stl");
+
+    renderer.render(scene, camera);
+    */
+
+	</script>
+
+</body>
+
+</html>
