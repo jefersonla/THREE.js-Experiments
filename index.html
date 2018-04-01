@@ -35,17 +35,140 @@
     var camera, scene, renderer, controls, axes;
 
     // Objects positions
-    var objProperties = {
+    var objsToLoad = {
       moldSG90 : {
-        position: {
-          x: 0,
-          y: 10,
-          z: 0
-        },
-        rotation: {
-          x: 0,
-          y: 0,
-          z: 0
+        path: "./parts/leg_mold_sg90.stl",
+        properties: {
+          position: {
+            x: 0,
+            y: -20,
+            z: 0
+          },
+          rotation: {
+            x: 0,
+            y: 0,
+            z: 0
+          }
+        }
+      },
+      servoBottom : {
+        path: "./parts/servoBottom.stl",
+        properties: {
+          position: {
+            x: 0,
+            y: -20,
+            z: 0
+          },
+          rotation: {
+            x: 0,
+            y: 0,
+            z: 0
+          }
+        }
+      },
+      bodyCover : {
+        path: "./parts/bodyCover.stl",
+        properties: {
+          position: {
+            x: 0,
+            y: 40,
+            z: 0
+          },
+          rotation: {
+            x: THREE.Math.degToRad(-90),
+            y: 0,
+            z: THREE.Math.degToRad(180)
+          }
+        }
+      },
+      body : {
+        path: "./parts/body.stl",
+        properties: {
+          position: {
+            x: 0,
+            y: 40,
+            z: 0
+          },
+          rotation: {
+            x: THREE.Math.degToRad(90),
+            y: 0,
+            z: THREE.Math.degToRad(180)
+          }
+        }
+      },
+      bodyBottom : {
+        path: "./parts/bodyBottom.stl",
+        properties: {
+          position: {
+            x: 0,
+            y: 30,
+            z: 0
+          },
+          rotation: {
+            x: THREE.Math.degToRad(90),
+            y: 0,
+            z: THREE.Math.degToRad(180)
+          }
+        }
+      },
+      legBackLeft : {
+        path: "./parts/leg.stl",
+        properties: {
+          position: {
+            x: 80,
+            y: 48.5,
+            z: 30
+          },
+          rotation: {
+            x: 0,
+            y: THREE.Math.degToRad(180),
+            z: 0
+          }
+        }
+      },
+      legFrontLeft : {
+        path: "./parts/leg.stl",
+        properties: {
+          position: {
+            x: 80,
+            y: 48.5,
+            z: -20
+          },
+          rotation: {
+            x: 0,
+            y: THREE.Math.degToRad(180),
+            z: 0
+          }
+        }
+      },
+      legBackRight : {
+        path: "./parts/leg.stl",
+        properties: {
+          position: {
+            x: -80,
+            y: 48.5,
+            z: 20
+          },
+          rotation: {
+            x: 0,
+            y: THREE.Math.degToRad(0),
+            z: 0
+          }
+        }
+      },
+      legFrontRight : {
+        path: "./parts/leg.stl",
+        properties: {
+          position: {
+            x: -80,
+            y: 48.5,
+            z: -30
+          },
+          rotation: {
+            x: 0,
+            y: THREE.Math.degToRad(0),
+            z: 0
+          }
         }
       }
     };
@@ -162,11 +285,9 @@
           mesh.receiveShadow = true;
 
           // If this object has custom properties change them now
-          for(let objName in objProperties){
-            for(let propertyName in objProperties[objName]){
-              for(let propertyValue in objProperties[objName][propertyName]){
-                mesh[propertyName][propertyValue] = objProperties[objName][propertyName][propertyValue];
-              }
+          for(let propertyName in objsToLoad[objName].properties){
+            for(let propertyValue in objsToLoad[objName].properties[propertyName]){
+              mesh[propertyName][propertyValue] = objsToLoad[objName].properties[propertyName][propertyValue];
             }
           }
 
@@ -178,8 +299,11 @@
 
       }
 
-      // STL file to be loaded
-      loader.load('./parts/leg_mold_sg90.stl', loadSTL("moldSG90"));
+      // Load all stl files in the desired position
+      for(let stlObj in objsToLoad){
+        console.log("Loading - " + objsToLoad[stlObj].path);
+        loader.load(objsToLoad[stlObj].path, loadSTL(stlObj));
+      }
 
       // Append the dom element to page
       document.body.appendChild(renderer.domElement);
