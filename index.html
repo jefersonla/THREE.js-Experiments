@@ -36,12 +36,12 @@
 
     // Objects positions
     var objsToLoad = {
-      moldSG90 : {
-        path: "./parts/leg_mold_sg90.stl",
+      sg90Servo : {
+        path: "./parts/sg90Servo.stl",
         properties: {
           position: {
-            x: 0,
-            y: -20,
+            x: -9.85,
+            y: -51,
             z: 0
           },
           rotation: {
@@ -55,14 +55,54 @@
         path: "./parts/servoBottom.stl",
         properties: {
           position: {
-            x: 0,
-            y: -20,
-            z: 0
+            x: 5.3,
+            y: 0,
+            z: -16
           },
           rotation: {
             x: 0,
-            y: 0,
-            z: 0
+            y: THREE.Math.degToRad(180),
+            z: THREE.Math.degToRad(-90)
+          }
+        }
+      },
+      servoSupportX : {
+        path: "./parts/servoSupport.stl",
+        properties: {
+          position: {
+            x: 6,
+            y: 11,
+            z: 10
+          },
+          rotation: {
+            x: THREE.Math.degToRad(-90),
+            y: THREE.Math.degToRad(-90),
+            z: THREE.Math.degToRad(180)
+          },
+          scale: {
+            x: 1,
+            y: 0.9,
+            z: 0.9
+          }
+        }
+      },
+      servoSupportY : {
+        path: "./parts/servoSupport.stl",
+        properties: {
+          position: {
+            x: -12.6,
+            y: 29.4,
+            z: -8.7
+          },
+          rotation: {
+            x: THREE.Math.degToRad(180),
+            y: THREE.Math.degToRad(180),
+            z: THREE.Math.degToRad(-90)
+          },
+          scale: {
+            x: 1,
+            y: 0.9,
+            z: 0.9
           }
         }
       },
@@ -71,7 +111,7 @@
         properties: {
           position: {
             x: 0,
-            y: 55,
+            y: 80,
             z: 0
           },
           rotation: {
@@ -86,13 +126,13 @@
         properties: {
           position: {
             x: 0,
-            y: 55,
+            y: 80,
             z: 0
           },
           rotation: {
             x: THREE.Math.degToRad(90),
             y: 0,
-            z: THREE.Math.degToRad(180)
+            z: 0
           }
         }
       },
@@ -101,7 +141,7 @@
         properties: {
           position: {
             x: 0,
-            y: 45,
+            y: 70,
             z: 0
           },
           rotation: {
@@ -111,7 +151,7 @@
           }
         }
       },
-      legBackLeft : {
+      legFrontRight : {
         path: "./parts/leg.stl",
         properties: {
           position: {
@@ -126,7 +166,7 @@
           }
         }
       },
-      legFrontLeft : {
+      legBackRight : {
         path: "./parts/leg.stl",
         properties: {
           position: {
@@ -141,22 +181,22 @@
           }
         }
       },
-      legBackRight : {
+      legFrontLeft : {
         path: "./parts/leg.stl",
         properties: {
           position: {
-            x: -80,
-            y: 48.5,
-            z: 20
+            x: 5,
+            y: 0,
+            z: -10
           },
           rotation: {
             x: 0,
-            y: THREE.Math.degToRad(0),
-            z: 0
+            y: 0,
+            z: THREE.Math.degToRad(90)
           }
         }
       },
-      legFrontRight : {
+      legBackLeft : {
         path: "./parts/leg.stl",
         properties: {
           position: {
@@ -310,6 +350,24 @@
 
       // Add a mouse controller for this scene
       controls = new THREE.TrackballControls(camera, renderer.domElement);
+
+      // Add an event listener to reset camera position
+      document.addEventListener('keypress', (event) => {
+        // Get pressed key
+        var key = event.which || event.keyCode;
+
+        // Uncomment this to discover what is the code ok key pressed
+        //console.log("DEBUG -- Key pressed => " + key);
+
+        // Key 'r' has code 114
+        var keyR = 114;
+
+        // Check if pressed key b and reset it's control
+        if(key === keyR){
+          controls.reset();
+          console.log("Resetting controls...");
+        }
+      });
     }
 
     // Animate scene
