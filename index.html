@@ -32,17 +32,254 @@
 	<script>
 
     // Global objects
-    var camera, scene, renderer, controls, axes;
+    var camera,
+        scene,
+        renderer,
+        controls,
+        axes,
+        groundPlane,
+        meshObjects;
+
+    // Box Helpers
+    var boxHelperVector = [];
+
+    // Groups are collection of meshs
+    var meshGroups = {
+      servoModel: {
+        visible: false,
+        groupObject: null,
+        meshChilds: [],
+        usedObjects: {}
+      },
+      legSupport: {
+        visible: false,
+        groupObject: null,
+        meshChilds: [],
+        usedObjects: {
+          legServo: {
+            groupModel: "servoModel",
+            properties: {
+              position: {
+                x: 0,
+                y: 0,
+                z: 0
+              },
+              rotation: {
+                x: 0,
+                y: 0,
+                z: 0
+              }
+            }
+          }
+        }
+      },
+      servoSupport:{
+        visible: false,
+        groupObject: null,
+        meshChilds: [],
+        usedObjects: {
+          legServo: {
+            groupModel: "legSupport",
+            properties: {
+              position: {
+                x: 0,
+                y: 0,
+                z: 0
+              },
+              rotation: {
+                x: 0,
+                y: 0,
+                z: 0
+              }
+            }
+          }
+        }
+      },
+      legModel:{
+        visible: false,
+        groupObject: null,
+        meshChilds: [],
+        usedObjects: {
+          legServo: {
+            groupModel: "servoSupport",
+            properties: {
+              position: {
+                x: 0,
+                y: -40.5,
+                z: -1.6
+              },
+              rotation: {
+                x: 0,
+                y: 0,
+                z: 0
+              }
+            }
+          }
+        }
+      },
+      bodyCover: {
+        visible: false,
+        groupObject: null,
+        meshChilds: [],
+        usedObjects: {
+          staticServoFL: {
+            groupModel: "servoModel",
+            properties: {
+              position: {
+                x: -31,
+                y: 5,
+                z: 26.9
+              },
+              rotation: {
+                x: THREE.Math.degToRad(90),
+                y: THREE.Math.degToRad(180),
+                z: THREE.Math.degToRad(270)
+              }
+            }
+          },
+          staticServoFR: {
+            groupModel: "servoModel",
+            properties: {
+              position: {
+                x: 31,
+                y: 5,
+                z: 26.9
+              },
+              rotation: {
+                x: THREE.Math.degToRad(90),
+                y: THREE.Math.degToRad(180),
+                z: THREE.Math.degToRad(270)
+              }
+            }
+          },
+          staticServoBL: {
+            groupModel: "servoModel",
+            properties: {
+              position: {
+                x: -31,
+                y: 5,
+                z: -26.9
+              },
+              rotation: {
+                x: THREE.Math.degToRad(90),
+                y: THREE.Math.degToRad(180),
+                z: THREE.Math.degToRad(90)
+              }
+            }
+          },
+          staticServoBR: {
+            groupModel: "servoModel",
+            properties: {
+              position: {
+                x: 31,
+                y: 5,
+                z: -26.9
+              },
+              rotation: {
+                x: THREE.Math.degToRad(90),
+                y: THREE.Math.degToRad(180),
+                z: THREE.Math.degToRad(90)
+              }
+            }
+          }
+        }
+      },
+      body:{
+        visible: true,
+        groupObject: null,
+        meshChilds: [],
+        usedObjects: {
+          staticBody: {
+            groupModel: "bodyCover",
+            properties: {
+              position: {
+                x: 0,
+                y: 47.5,
+                z: 0
+              },
+              rotation: {
+                x: 0,
+                y: 0,
+                z: 0
+              }
+            }
+          },
+          legFrontLeft:{
+            groupModel: "legModel",
+            properties: {
+              position: {
+                x: -31,
+                y: 53.5,
+                z: 26.8
+              },
+              rotation: {
+                x: 0,
+                y: 0,
+                z: THREE.Math.degToRad(270)
+              }
+            }
+          },
+          legBackLeft:{
+            groupModel: "legModel",
+            properties: {
+              position: {
+                x: -31,
+                y: 53.5,
+                z: -26.8
+              },
+              rotation: {
+                x: 0,
+                y: 0,
+                z: THREE.Math.degToRad(270)
+              }
+            }
+          },
+          legBackRight:{
+            groupModel: "legModel",
+            properties: {
+              position: {
+                x: 31,
+                y: 53.5,
+                z: -26.8
+              },
+              rotation: {
+                x: 0,
+                y: THREE.Math.degToRad(180),
+                z: THREE.Math.degToRad(270)
+              }
+            }
+          },
+          legFrontRight:{
+            groupModel: "legModel",
+            properties: {
+              position: {
+                x: 31,
+                y: 53.5,
+                z: 26.8
+              },
+              rotation: {
+                x: 0,
+                y: THREE.Math.degToRad(180),
+                z: THREE.Math.degToRad(270)
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // ----------------------------------------------------------
 
     // Objects positions
     var objsToLoad = {
       sg90Servo : {
         path: "./parts/sg90Servo.stl",
+        groups: ["servoModel"],
         properties: {
           position: {
             x: -9.85,
             y: -51,
-            z: 0
+            z: 5
           },
           rotation: {
             x: 0,
@@ -53,11 +290,12 @@
       },
       servoBottom : {
         path: "./parts/servoBottom.stl",
+        groups: ["servoModel"],
         properties: {
           position: {
             x: 5.3,
             y: 0,
-            z: -16
+            z: -11
           },
           rotation: {
             x: 0,
@@ -68,11 +306,12 @@
       },
       servoSupportX : {
         path: "./parts/servoSupport.stl",
+        groups: ["servoSupport"],
         properties: {
           position: {
-            x: 6,
+            x: 5.4,
             y: 11,
-            z: 10
+            z: 15
           },
           rotation: {
             x: THREE.Math.degToRad(-90),
@@ -88,11 +327,12 @@
       },
       servoSupportY : {
         path: "./parts/servoSupport.stl",
+        groups: ["servoSupport"],
         properties: {
           position: {
-            x: -12.6,
+            x: -13.2,
             y: 29.4,
-            z: -8.7
+            z: -3.7
           },
           rotation: {
             x: THREE.Math.degToRad(180),
@@ -106,12 +346,29 @@
           }
         }
       },
+      leg : {
+        path: "./parts/leg.stl",
+        groups: ["legSupport"],
+        properties: {
+          position: {
+            x: 5,
+            y: 0,
+            z: -5
+          },
+          rotation: {
+            x: 0,
+            y: 0,
+            z: THREE.Math.degToRad(90)
+          }
+        }
+      },
       bodyCover : {
         path: "./parts/bodyCover.stl",
+        groups: ["bodyCover"],
         properties: {
           position: {
             x: 0,
-            y: 80,
+            y: 10,
             z: 0
           },
           rotation: {
@@ -123,10 +380,11 @@
       },
       body : {
         path: "./parts/body.stl",
+        groups: ["bodyCover"],
         properties: {
           position: {
             x: 0,
-            y: 80,
+            y: 10,
             z: 0
           },
           rotation: {
@@ -138,10 +396,11 @@
       },
       bodyBottom : {
         path: "./parts/bodyBottom.stl",
+        groups: ["bodyCover"],
         properties: {
           position: {
             x: 0,
-            y: 70,
+            y: 0,
             z: 0
           },
           rotation: {
@@ -150,68 +409,20 @@
             z: THREE.Math.degToRad(180)
           }
         }
-      },
-      legFrontRight : {
-        path: "./parts/leg.stl",
-        properties: {
-          position: {
-            x: 80,
-            y: 48.5,
-            z: 30
-          },
-          rotation: {
-            x: 0,
-            y: THREE.Math.degToRad(180),
-            z: 0
-          }
-        }
-      },
-      legBackRight : {
-        path: "./parts/leg.stl",
-        properties: {
-          position: {
-            x: 80,
-            y: 48.5,
-            z: -20
-          },
-          rotation: {
-            x: 0,
-            y: THREE.Math.degToRad(180),
-            z: 0
-          }
-        }
-      },
-      legFrontLeft : {
-        path: "./parts/leg.stl",
-        properties: {
-          position: {
-            x: 5,
-            y: 0,
-            z: -10
-          },
-          rotation: {
-            x: 0,
-            y: 0,
-            z: THREE.Math.degToRad(90)
-          }
-        }
-      },
-      legBackLeft : {
-        path: "./parts/leg.stl",
-        properties: {
-          position: {
-            x: -80,
-            y: 48.5,
-            z: -30
-          },
-          rotation: {
-            x: 0,
-            y: THREE.Math.degToRad(0),
-            z: 0
-          }
-        }
       }
     };
+
+    // Size of objsToLoad
+    // <3 https://stackoverflow.com/questions/126100/how-to-efficiently-count-the-number-of-keys-properties-of-an-object-in-javascrip
+    var objsToLoadSize = Object.keys(objsToLoad).length;
+
+    // Box3 Temp reusable object
+    // <3 https://stackoverflow.com/questions/41459512/from-boundingboxhelper-to-boxhelper
+    var box3Size = new THREE.Box3();
+    var objSize = new THREE.Vector3();
+
+    // Count number of objects loaded
+    var LOADED_OBJECTS_NUMBER = 0;
 
     // Init content and animate it's scene
     init();
@@ -222,6 +433,12 @@
 
       // Create a new scene
       scene = new THREE.Scene();
+
+      // TODO Add a different background color
+      //scene.background = new THREE.Color( 0x72645b );
+
+      // TODO Add a fog enviroment at end
+      //scene.fog = new THREE.Fog( 0x72645b, 300, 450 );
 
       // Create a new WebGLRenderer, set it's size and it's color
       renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -240,13 +457,13 @@
 
       // Create a new camera
       camera = new THREE.PerspectiveCamera(50, 800 / 500, 1, 10000);
-      camera.position.set(90, 90, 90);
+      camera.position.set(0, 150, 250);
       camera.lookAt(scene.position);
 
       // Create a fake camera and render a custom frame just to update projection matrix
       // of this camera and project the camera helper accordily
       var fakeCamera = new THREE.PerspectiveCamera(50, 800 / 500, 1, 10000);
-      fakeCamera.position.set(90, 90, 90);
+      fakeCamera.position.set(0, 150, 250);
       fakeCamera.lookAt(scene.position);
       renderer.render(scene, fakeCamera);
 
@@ -270,7 +487,7 @@
 
       // Create an spotlight, which can cast shadows
       var spotLight = new THREE.SpotLight( 0xffffff );
-      spotLight.position.set( 100, 100, 100 );
+      spotLight.position.set( 0, 200, 200 );
 
       // Enable shadow
       spotLight.castShadow = true;
@@ -281,7 +498,7 @@
 
       // Configure shadow
       spotLight.shadow.camera.near = 2;
-      spotLight.shadow.camera.far = 400;
+      spotLight.shadow.camera.far = 800;
       spotLight.shadow.camera.fov = 1;
 
       // Add spotlight to scene
@@ -297,13 +514,13 @@
       // Add a plane to represent ground on this scene
       var planeGeometry = new THREE.PlaneBufferGeometry(400, 400, 32, 32);
       var planeMaterial = new THREE.MeshStandardMaterial({ color: 0xfffffff });
-      var plane = new THREE.Mesh(planeGeometry, planeMaterial);
-      plane.rotation.x = THREE.Math.degToRad(-90);
-      plane.receiveShadow = true;
-      scene.add(plane);
+      groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+      groundPlane.rotation.x = THREE.Math.degToRad(-90);
+      groundPlane.receiveShadow = true;
+      scene.add(groundPlane);
 
       // Create an array to organize every mesh
-      window.meshObjects = [];
+      meshObjects = [];
 
       // Add a event listener to all objects
       function loadSTL(objName){
@@ -331,11 +548,55 @@
             }
           }
 
-          // Add the object to scene
-          window.meshObjects[objName] = mesh;
-          scene.add(mesh);
+          // Add copies of this mesh to the custom gorups
+          for(var i = 0; i < objsToLoad[objName].groups.length; i++){
+            // Group name
+            var groupName = objsToLoad[objName].groups[i];
+            console.log("Cloning mesh " + objName + " to group " + groupName);
+
+            // Create a clone of this mesh
+            var meshClone = mesh.clone();
+
+            // Add this copie to the group and the array of meshs in group
+            meshGroups[groupName].groupObject.add(meshClone);
+            meshGroups[groupName].meshChilds.push(meshClone);
+          }
+
+          // Add the object to scene if this mesh don't belong to a group
+          if(objsToLoad[objName].groups.length === 0){
+            console.log("Obj " + objName + " being added to scene");
+            meshObjects[objName] = mesh;
+            scene.add(mesh);
+
+            // In DEBUG situations add a box helper to mesh to check it's sizes
+            var boxHelper = new THREE.BoxHelper( mesh, 0xffff00 );
+            scene.add(boxHelper);
+            boxHelperVector.push(boxHelper);
+
+            // Display object size
+            displayObjectSize(objName, boxHelper);
+          }
+
+          // Increment counter of loaded objects
+          LOADED_OBJECTS_NUMBER++;
+
+          // If all objects are loaded then call function to organize groups
+          if(LOADED_OBJECTS_NUMBER === objsToLoadSize){
+            organizeGroups();
+          }
 
         });
+
+      }
+
+      // Initialize mesh groups
+      for(let groupName in meshGroups){
+
+        // Create the group object
+        meshGroups[groupName].groupObject = new THREE.Group();
+
+        // Create a box to represent pivot
+        // TODO Not necessarily now, maybe on the future
 
       }
 
@@ -379,6 +640,11 @@
       // Update controls
       controls.update();
 
+      // Update box helpers in scene
+      for(var i = 0; i < boxHelperVector.length; i++){
+        boxHelperVector[i].update();
+      }
+
       // Re-render this scene
       render();
     }
@@ -386,6 +652,67 @@
     // Render scene content
     function render(){
       renderer.render(scene, camera);
+    }
+
+    // Display size of an 3D Object
+    function displayObjectSize(objName, obj){
+      // Get a bounding box from the obj
+      box3Size.setFromObject(obj);
+
+      // Change size vector3 to display size of this object
+      box3Size.getSize(objSize);
+
+      // Display object size
+      console.log("Sizes of " + objName +
+                  " X: " + objSize.x,
+                  " Y: " + objSize.y,
+                  " Z: " + objSize.z);
+    }
+
+    // Organize groups since all content are loaded
+    function organizeGroups(){
+
+      // Debug message
+      console.log("Organizing groups...");
+
+      // For each group in mesh groups
+      for(let groupName in meshGroups){
+
+        // Check if we use another object inside this group and add a copy of it to this
+        for(let auxObjID in meshGroups[groupName].usedObjects){
+
+          // Get auxObjName with obj id
+          var auxObjName = meshGroups[groupName].usedObjects[auxObjID].groupModel;
+
+          // Copy of aux obj
+          var cloneAuxObj = meshGroups[auxObjName].groupObject.clone();
+
+          // Add this aux obj to the current group
+          console.log("Appending obj " + auxObjName + " to group " + groupName);
+          meshGroups[groupName].groupObject.add(cloneAuxObj);
+          meshGroups[groupName].meshChilds.push(cloneAuxObj);
+
+          // In case of this cloned group has custom properties change them now
+          for(let propertyName in meshGroups[groupName].usedObjects[auxObjID].properties){
+            for(let propertyValue in meshGroups[groupName].usedObjects[auxObjID].properties[propertyName]){
+              cloneAuxObj[propertyName][propertyValue] = meshGroups[groupName].usedObjects[auxObjID].properties[propertyName][propertyValue];
+            }
+          }
+        }
+
+        // Add this group to scene if it's visible
+        if(meshGroups[groupName].visible){
+          // In DEBUG situations add a box helper to mesh to check it's sizes
+          var boxHelper = new THREE.BoxHelper( meshGroups[groupName].groupObject, 0xffff00 );
+          scene.add(boxHelper);
+          boxHelperVector.push(boxHelper);
+
+          // Add group to scene
+          scene.add(meshGroups[groupName].groupObject);
+        }
+
+      }
+
     }
 
     /*
