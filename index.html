@@ -38,7 +38,10 @@
         controls,
         axes,
         groundPlane,
-        meshObjects;
+        meshObjects,
+        bonesArray,
+        bonesArticulations,
+        quadrupedSkeleton;
 
     // Box Helpers
     var boxHelperVector = [];
@@ -46,15 +49,17 @@
     // Groups are collection of meshs
     var meshGroups = {
       servoModel: {
+        isBone: false,
         visible: false,
         groupObject: null,
-        meshChilds: [],
+        meshChilds: {},
         usedObjects: {}
       },
       legSupport: {
+        isBone: true,
         visible: false,
         groupObject: null,
-        meshChilds: [],
+        meshChilds: {},
         usedObjects: {
           legServo: {
             groupModel: "servoModel",
@@ -74,9 +79,10 @@
         }
       },
       servoSupport:{
+        isBone: true,
         visible: false,
         groupObject: null,
-        meshChilds: [],
+        meshChilds: {},
         usedObjects: {
           legServo: {
             groupModel: "legSupport",
@@ -96,9 +102,10 @@
         }
       },
       legModel:{
+        isBone: true,
         visible: false,
         groupObject: null,
-        meshChilds: [],
+        meshChilds: {},
         usedObjects: {
           legServo: {
             groupModel: "servoSupport",
@@ -118,9 +125,10 @@
         }
       },
       bodyCover: {
+        isBone: false,
         visible: false,
         groupObject: null,
-        meshChilds: [],
+        meshChilds: {},
         usedObjects: {
           staticServoFL: {
             groupModel: "servoModel",
@@ -185,9 +193,10 @@
         }
       },
       body:{
+        isBone: true,
         visible: true,
         groupObject: null,
-        meshChilds: [],
+        meshChilds: {},
         usedObjects: {
           staticBody: {
             groupModel: "bodyCover",
@@ -548,7 +557,7 @@
             }
           }
 
-          // Add copies of this mesh to the custom gorups
+          // Add copies of this mesh to the custom groups
           for(var i = 0; i < objsToLoad[objName].groups.length; i++){
             // Group name
             var groupName = objsToLoad[objName].groups[i];
@@ -559,7 +568,7 @@
 
             // Add this copie to the group and the array of meshs in group
             meshGroups[groupName].groupObject.add(meshClone);
-            meshGroups[groupName].meshChilds.push(meshClone);
+            meshGroups[groupName].meshChilds[objName] = meshClone;
           }
 
           // Add the object to scene if this mesh don't belong to a group
@@ -592,8 +601,12 @@
       // Initialize mesh groups
       for(let groupName in meshGroups){
 
-        // Create the group object
-        meshGroups[groupName].groupObject = new THREE.Group();
+        // Create the group object or bone object
+        if(meshGroups[groupName].isBone){
+          meshGroups[groupName].groupObject = new THREE.Bone();
+        } else {
+          meshGroups[groupName].groupObject = new THREE.Group();
+        }
 
         // Create a box to represent pivot
         // TODO Not necessarily now, maybe on the future
@@ -690,12 +703,13 @@
           // Add this aux obj to the current group
           console.log("Appending obj " + auxObjName + " to group " + groupName);
           meshGroups[groupName].groupObject.add(cloneAuxObj);
-          meshGroups[groupName].meshChilds.push(cloneAuxObj);
+          meshGroups[groupName].meshChilds[auxObjID] = cloneAuxObj;
 
           // In case of this cloned group has custom properties change them now
           for(let propertyName in meshGroups[groupName].usedObjects[auxObjID].properties){
             for(let propertyValue in meshGroups[groupName].usedObjects[auxObjID].properties[propertyName]){
-              cloneAuxObj[propertyName][propertyValue] = meshGroups[groupName].usedObjects[auxObjID].properties[propertyName][propertyValue];
+              cloneAuxObj[propertyName][propertyValue] = meshGroups[groupName].usedObjects[auxObjID]
+                                                                              .properties[propertyName][propertyValue];
             }
           }
         }
@@ -706,6 +720,79 @@
           var boxHelper = new THREE.BoxHelper( meshGroups[groupName].groupObject, 0xffff00 );
           scene.add(boxHelper);
           boxHelperVector.push(boxHelper);
+
+          window.HAHA = meshGroups[groupName];
+
+          // Bones array, add this as first bone
+          bonesArray = [meshGroups[groupName].groupObject];
+
+          // Bones articulations 
+          // TODO since now we have only one bone per articulation create an obj
+          // with a list of bones per articulation
+          bonesArticulations = {};
+
+          // For every bone which belong to childs of this group
+          for(let groupNameID in meshGroups[groupName].meshChilds){
+            
+            // Check if it's a bone
+            if(meshGroups[groupName].meshChilds[groupNameID].type === "Bone"){
+              // Get reference of the actual boneObj
+              var boneObj = meshGroups[groupName].meshChilds[groupNameID]; 
+              
+              // Add a green box helper for articulations
+              var boxHelper = new THREE.BoxHelper( boneObj, 0x002aff );
+              scene.add(boxHelper);
+              boxHelperVector.push(boxHelper);
+
+              // Since we are a bone add this to list of bones
+              bonesArray.push(boneObj);
+
+              // Save an array of bones in this articulation to change properties after
+              bonesArticulations[groupNameID] = [];
+
+              // This function return every bone in an articulation
+              function returnBonesRec(objsBones, bonesFound){
+
+                // Check children of this bone
+                for(var i = 0; i < objsBones.children.length; i++){
+                  // Check if it's a bone and call this function recursively
+                  if(objsBones.children[i].type === "Bone"){
+                    // Get actual bone
+                    var actualBone = objsBones.children[i];
+
+                    // Add a blue box helper to basic bones
+                    var boxHelper = new THREE.BoxHelper( actualBone, 0x00ff19 );
+                    scene.add(boxHelper);
+                    boxHelperVector.push(boxHelper);
+
+                    // Add to the array of bones
+                    bonesArray.push(actualBone);
+
+                    // Add to the bonesFound array too
+                    bonesFound.push(actualBone);
+
+                    // Call this function recursively
+                    returnBonesRec(actualBone, bonesFound);
+                  }
+                }
+              }
+ 
+              // Get all bones of this articulation
+              returnBonesRec(boneObj, bonesArticulations[groupNameID]);
+            }
+
+            // Quadruped skeleton
+            quadrupedSkeleton = new THREE.Skeleton( bonesArray );
+
+            // Bind skeleton to this group mesh
+            //meshGroups[groupName].groupObject.bind(quadrupedSkeleton);
+
+            // Add a skeleton helper to scene
+            //var skeletonHelper = new THREE.SkeletonHelper( quadrupedSkeleton );
+            //skeletonHelper.material.linewidth = 3;
+            //scene.add( skeletonHelper );
+
+          }
 
           // Add group to scene
           scene.add(meshGroups[groupName].groupObject);
