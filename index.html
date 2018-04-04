@@ -32,6 +32,9 @@
 
 	<script>
 
+    // Enable Visual Debug
+    var VISUAL_DEBUG = false;
+
     // Global objects
     var camera,
         scene,
@@ -459,7 +462,7 @@
       //scene.fog = new THREE.Fog( 0x72645b, 300, 450 );
 
       // Create a new WebGLRenderer, set it's size and it's color
-      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer = new THREE.WebGLRenderer({ antialias: false });
       renderer.setSize(800, 500);
       renderer.setClearColor(0xf5f5f5, 1);
 			renderer.setPixelRatio( window.devicePixelRatio );
@@ -486,18 +489,24 @@
       renderer.render(scene, fakeCamera);
 
       // Add a camera helper to help with orientation
-      var cameraHelper = new THREE.CameraHelper( fakeCamera );
-      cameraHelper.matrixAutoUpdate = false;
-      scene.add( cameraHelper );
+      if(VISUAL_DEBUG){
+        var cameraHelper = new THREE.CameraHelper( fakeCamera );
+        cameraHelper.matrixAutoUpdate = false;
+        scene.add( cameraHelper );
+      }
 
       // Add a grid to help with orientation
-      var gridHelper = new THREE.GridHelper( 400, 40, 0x0000ff, 0x808080 );
-  		scene.add(gridHelper);
+      if(VISUAL_DEBUG){
+        var gridHelper = new THREE.GridHelper( 400, 40, 0x0000ff, 0x808080 );
+    		scene.add(gridHelper);
+      }
 
       // Create an axis helper to help with orientation
-      axes = new THREE.AxesHelper(1000);
-      axes.position.y = 0.1;
-      scene.add(axes);
+      if(VISUAL_DEBUG){
+        axes = new THREE.AxesHelper(1000);
+        axes.position.y = 0.1;
+        scene.add(axes);
+      }
 
       // Create an hemisphere light and add it to scene
       var hemisphereLight = new THREE.HemisphereLight(0x443333, 0x111122);
@@ -523,14 +532,16 @@
       scene.add(spotLight);
 
       // Add a spotlight helper to help orientation
-      var spotLightHelper = new THREE.SpotLightHelper( spotLight );
-      scene.add( spotLightHelper );
+      if(VISUAL_DEBUG){
+        var spotLightHelper = new THREE.SpotLightHelper( spotLight );
+        scene.add( spotLightHelper );
+      }
 
       // Create the loader for STL files
       var loader = new THREE.STLLoader();
 
       // Add a plane to represent ground on this scene
-      var planeGeometry = new THREE.PlaneBufferGeometry(400, 400, 32, 32);
+      var planeGeometry = new THREE.PlaneBufferGeometry(4000, 4000, 32, 32);
       var planeMaterial = new THREE.MeshStandardMaterial({ color: 0xfffffff });
       groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
       groundPlane.rotation.x = THREE.Math.degToRad(-90);
@@ -596,9 +607,11 @@
             scene.add(mesh);
 
             // In DEBUG situations add a box helper to mesh to check it's sizes
-            var boxHelper = new THREE.BoxHelper( mesh, 0xffff00 );
-            scene.add(boxHelper);
-            boxHelperVector.push(boxHelper);
+            if(VISUAL_DEBUG){
+              var boxHelper = new THREE.BoxHelper( mesh, 0xffff00 );
+              scene.add(boxHelper);
+              boxHelperVector.push(boxHelper);
+            }
 
             // Display object size
             displayObjectSize(objName, boxHelper);
@@ -643,6 +656,10 @@
       // Add a mouse controller for this scene
       controls = new THREE.TrackballControls(camera, renderer.domElement);
 
+      // Disable vertical rotation
+      controls.minPolarAngle = 1;
+      controls.maxPolarAngle = 1;
+
       // Add an event listener to reset camera position
       document.addEventListener('keypress', (event) => {
         // Get pressed key
@@ -672,8 +689,10 @@
       controls.update();
 
       // Update box helpers in scene
-      for(var i = 0; i < boxHelperVector.length; i++){
-        boxHelperVector[i].update();
+      if(VISUAL_DEBUG){
+        for(var i = 0; i < boxHelperVector.length; i++){
+          boxHelperVector[i].update();
+        }
       }
 
       // Re-render this scene
@@ -735,11 +754,11 @@
         // Add this group to scene if it's visible
         if(meshGroups[groupName].visible){
           // In DEBUG situations add a box helper to mesh to check it's sizes
-          var boxHelper = new THREE.BoxHelper( meshGroups[groupName].groupObject, 0xffff00 );
-          scene.add(boxHelper);
-          boxHelperVector.push(boxHelper);
-
-          window.HAHA = meshGroups[groupName];
+          if(VISUAL_DEBUG){
+            var boxHelper = new THREE.BoxHelper( meshGroups[groupName].groupObject, 0xffff00 );
+            scene.add(boxHelper);
+            boxHelperVector.push(boxHelper);
+          }
 
           // Bones array, add this as first bone
           bonesArray = [meshGroups[groupName].groupObject];
@@ -758,9 +777,11 @@
               var boneObj = meshGroups[groupName].meshChilds[groupNameID];
 
               // Add a green box helper for articulations
-              var boxHelper = new THREE.BoxHelper( boneObj, 0x002aff );
-              scene.add(boxHelper);
-              boxHelperVector.push(boxHelper);
+              if(VISUAL_DEBUG){
+                var boxHelper = new THREE.BoxHelper( boneObj, 0x002aff );
+                scene.add(boxHelper);
+                boxHelperVector.push(boxHelper);
+              }
 
               // Since we are a bone add this to list of bones
               bonesArray.push(boneObj);
@@ -779,9 +800,11 @@
                     var actualBone = objsBones.children[i];
 
                     // Add a blue box helper to basic bones
-                    var boxHelper = new THREE.BoxHelper( actualBone, 0x00ff19 );
-                    scene.add(boxHelper);
-                    boxHelperVector.push(boxHelper);
+                    if(VISUAL_DEBUG){
+                      var boxHelper = new THREE.BoxHelper( actualBone, 0x00ff19 );
+                      scene.add(boxHelper);
+                      boxHelperVector.push(boxHelper);
+                    }
 
                     // Add to the array of bones
                     bonesArray.push(actualBone);
