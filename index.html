@@ -465,10 +465,16 @@
       renderer = new THREE.WebGLRenderer({ antialias: false });
       renderer.setSize(800, 500);
       renderer.setClearColor(0xf5f5f5, 1);
-			renderer.setPixelRatio( window.devicePixelRatio );
 			renderer.gammaInput = true;
 			renderer.gammaOutput = true;
 			renderer.shadowMap.enabled = true;
+
+      // Check if we have a mobile, and decrease pixel ratio to improve perfomance
+      if(mobilecheck()){
+        renderer.setPixelRatio( 0.5 );
+      } else {
+        renderer.setPixelRatio( window.devicePixelRatio );
+      }
 
       // Antialias the shadows
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -882,6 +888,22 @@
         }
       }
     }
+
+    // Return true if it's mobile and false otherwise
+    // <3 https://stackoverflow.com/questions/11381673/detecting-a-mobile-browser
+    function mobilecheck (){
+      if( navigator.userAgent.match(/Android/i)
+         || navigator.userAgent.match(/webOS/i)
+         || navigator.userAgent.match(/iPhone/i)
+         || navigator.userAgent.match(/iPad/i)
+         || navigator.userAgent.match(/iPod/i)
+         || navigator.userAgent.match(/BlackBerry/i)
+         || navigator.userAgent.match(/Windows Phone/i) ){
+        return true;
+      }
+
+      return false;
+    };
 
     /*
     function CameraControl(renderer, camera, updateCallback) {
