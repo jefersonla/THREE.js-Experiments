@@ -794,12 +794,35 @@
 
           }
 
+          // Since now we have all the bones we can create the change interface
+          createGui();
+
           // Add group to scene
           scene.add(meshGroups[groupName].groupObject);
         }
 
       }
 
+    }
+
+    // Create a dat.gui interface to control bones
+    function createGui(){
+      // Create an empty interface
+      var gui = new dat.GUI({autoPlace: false});
+
+      // Append gui to renderer dom element
+      renderer.domElement.appendChild(gui.domElement);
+
+      // Add controller to every bone rotation
+      for(var i = 0; bonesArray.length; i++){
+        // Create a folder for each bone
+        var boneFolder = gui.addFolder("Bone " + i);
+        
+        // Create controllers from 0 to 180 of rotion of each bone
+        boneFolder.add(bonesArray[i].rotation, "x");
+        boneFolder.add(bonesArray[i].rotation, "y");
+        boneFolder.add(bonesArray[i].position, "z");
+      }
     }
 
     /*
