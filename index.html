@@ -25,6 +25,7 @@
 
 <body>
 
+  <script src="js/dat.gui.js"></script>
   <script src="js/three.js"></script>
   <script src="js/STLLoader.js"></script>
   <script src="js/TrackballControls.js"></script>
@@ -79,7 +80,7 @@
         }
       },
       servoSupport:{
-        isBone: true,
+        isBone: false,
         visible: false,
         groupObject: null,
         meshChilds: {},
@@ -284,6 +285,7 @@
       sg90Servo : {
         path: "./parts/sg90Servo.stl",
         groups: ["servoModel"],
+        color: null,
         properties: {
           position: {
             x: -9.85,
@@ -300,6 +302,7 @@
       servoBottom : {
         path: "./parts/servoBottom.stl",
         groups: ["servoModel"],
+        color: null,
         properties: {
           position: {
             x: 5.3,
@@ -316,6 +319,7 @@
       servoSupportX : {
         path: "./parts/servoSupport.stl",
         groups: ["servoSupport"],
+        color: 0x37EA10,
         properties: {
           position: {
             x: 5.4,
@@ -337,6 +341,7 @@
       servoSupportY : {
         path: "./parts/servoSupport.stl",
         groups: ["servoSupport"],
+        color: 0x37EA10,
         properties: {
           position: {
             x: -13.2,
@@ -358,6 +363,7 @@
       leg : {
         path: "./parts/leg.stl",
         groups: ["legSupport"],
+        color: 0xEA9610,
         properties: {
           position: {
             x: 5,
@@ -374,6 +380,7 @@
       bodyCover : {
         path: "./parts/bodyCover.stl",
         groups: ["bodyCover"],
+        color: 0x3010EA,
         properties: {
           position: {
             x: 0,
@@ -390,6 +397,7 @@
       body : {
         path: "./parts/body.stl",
         groups: ["bodyCover"],
+        color: 0x8710EA,
         properties: {
           position: {
             x: 0,
@@ -406,6 +414,7 @@
       bodyBottom : {
         path: "./parts/bodyBottom.stl",
         groups: ["bodyCover"],
+        color: 0x3010EA,
         properties: {
           position: {
             x: 0,
@@ -537,11 +546,20 @@
         return ((geometry) => {
 
           // Create material which is the apparence of the object
-          var material = new THREE.MeshPhongMaterial({
-            color: 0xCCC,
-            specular: 0x111111,
-            shininess: 200
-          });
+          var material;
+          if (objsToLoad[objName].color !== null){
+            material = new THREE.MeshPhongMaterial({
+              color: objsToLoad[objName].color,
+              specular: 0x111111,
+              shininess: 200
+            });
+          } else {
+            material = new THREE.MeshPhongMaterial({
+              color: 0xCCC,
+              specular: 0x111111,
+              shininess: 200
+            });
+          }
 
           // Join geometry and it's material to create the mesh
           var mesh = new THREE.Mesh(geometry, material);
@@ -726,19 +744,19 @@
           // Bones array, add this as first bone
           bonesArray = [meshGroups[groupName].groupObject];
 
-          // Bones articulations 
+          // Bones articulations
           // TODO since now we have only one bone per articulation create an obj
           // with a list of bones per articulation
           bonesArticulations = {};
 
           // For every bone which belong to childs of this group
           for(let groupNameID in meshGroups[groupName].meshChilds){
-            
+
             // Check if it's a bone
             if(meshGroups[groupName].meshChilds[groupNameID].type === "Bone"){
               // Get reference of the actual boneObj
-              var boneObj = meshGroups[groupName].meshChilds[groupNameID]; 
-              
+              var boneObj = meshGroups[groupName].meshChilds[groupNameID];
+
               // Add a green box helper for articulations
               var boxHelper = new THREE.BoxHelper( boneObj, 0x002aff );
               scene.add(boxHelper);
@@ -770,13 +788,13 @@
 
                     // Add to the bonesFound array too
                     bonesFound.push(actualBone);
-
-                    // Call this function recursively
-                    returnBonesRec(actualBone, bonesFound);
                   }
+
+                  // Call this function recursively
+                  returnBonesRec(objsBones.children[i], bonesFound);
                 }
               }
- 
+
               // Get all bones of this articulation
               returnBonesRec(boneObj, bonesArticulations[groupNameID]);
             }
@@ -808,20 +826,37 @@
     // Create a dat.gui interface to control bones
     function createGui(){
       // Create an empty interface
-      var gui = new dat.GUI({autoPlace: false});
+      var gui = new dat.GUI()//{autoPlace: false});
 
       // Append gui to renderer dom element
-      renderer.domElement.appendChild(gui.domElement);
+      //renderer.domElement.appendChild(gui.domElement);
+
+      //
+      var masterFolder = gui.addFolder("Body");
+      masterFolder.add(bonesArray[0].rotation, "y", -(Math.PI / 2), (Math.PI / 2)).step(Math.PI / 180);
+      masterFolder.add(bonesArray[0].position, "y", 0, 200).step(1);
 
       // Add controller to every bone rotation
-      for(var i = 0; bonesArray.length; i++){
-        // Create a folder for each bone
-        var boneFolder = gui.addFolder("Bone " + i);
-        
+      for(var i = 1, j = 1; i < bonesArray.length; i++, j++){
         // Create controllers from 0 to 180 of rotion of each bone
-        boneFolder.add(bonesArray[i].rotation, "x");
-        boneFolder.add(bonesArray[i].rotation, "y");
-        boneFolder.add(bonesArray[i].position, "z");
+        if(i % 2 === 0){
+          // Create a folder for each bone
+          j--;
+          var boneFolder = gui.addFolder("Leg " + j);
+
+          // Add controler for rotation of this Leg
+          boneFolder.add(bonesArray[i].rotation, "z", -(Math.PI / 2), (Math.PI / 2)).step(Math.PI / 180);
+        } else {
+          // Create a folder for each bone
+          var boneFolder = gui.addFolder("Arm " + j);
+
+          // Add controler for rotation of this Leg
+          if(j <= 2){
+            boneFolder.add(bonesArray[i].rotation, "y", -(Math.PI / 2), (Math.PI / 2)).step(Math.PI / 180);
+          } else {
+            boneFolder.add(bonesArray[i].rotation, "y", (Math.PI / 2), Math.PI * 1.5).step(Math.PI / 180);
+          }
+        }
       }
     }
 
