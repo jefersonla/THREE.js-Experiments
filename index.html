@@ -33,6 +33,7 @@
   <script src="js/three.js"></script>
   <script src="js/stats.js"></script>
   <script src="js/dat.gui.js"></script>
+  <script src="js/oimo.js"></script>
 
   <!-- Three.js Extensions -->
   <script src="js/Detector.js"></script>
@@ -681,6 +682,9 @@
           console.log("Resetting controls...");
         }
       });
+
+      // Add an event listener to window resize event
+      window.addEventListener('resize', onWindowResize, false);
     }
 
     // Animate scene
@@ -1023,6 +1027,13 @@
 
       return false;
     };
+
+    // Update camera and renderer if the window resize
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize( window.innerWidth, window.innerHeight );
+    }
 
     /*
     function CameraControl(renderer, camera, updateCallback) {
