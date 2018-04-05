@@ -462,25 +462,7 @@
       //scene.fog = new THREE.Fog( 0x72645b, 300, 450 );
 
       // Create a new WebGLRenderer, set it's size and it's color
-      renderer = new THREE.WebGLRenderer({ antialias: false });
-      renderer.setSize(800, 500);
-      renderer.setClearColor(0xf5f5f5, 1);
-			renderer.gammaInput = true;
-			renderer.gammaOutput = true;
-			renderer.shadowMap.enabled = true;
-
-      // Check if we have a mobile, and decrease pixel ratio to improve perfomance
-      if(mobilecheck()){
-        renderer.setPixelRatio( 0.5 );
-      } else {
-        renderer.setPixelRatio( window.devicePixelRatio );
-      }
-
-      // Antialias the shadows
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-      // Hack to avoid warning display
-      renderer.context.getShaderInfoLog = function () { return '' };
+      createRenderer(false);
 
       // Create a new camera
       camera = new THREE.PerspectiveCamera(50, 800 / 500, 1, 10000);
@@ -852,6 +834,38 @@
 
     }
 
+    // Create a renderer
+    function createRenderer(enableAntiAlias){
+      // Enable anti alias
+      if(enableAntiAlias){
+        // Create renderer and set some properties
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+
+        // Antialias the shadows
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      } else {
+        // Create renderer and set some properties
+        renderer = new THREE.WebGLRenderer({ antialias: false });
+      }
+
+      // Set some properties
+      renderer.setSize(800, 500);
+      renderer.setClearColor(0xf5f5f5, 1);
+			renderer.gammaInput = true;
+			renderer.gammaOutput = true;
+			renderer.shadowMap.enabled = true;
+
+      // Check if we have a mobile, and decrease pixel ratio to improve perfomance
+      if(mobilecheck()){
+        renderer.setPixelRatio( 0.5 );
+      } else {
+        renderer.setPixelRatio( window.devicePixelRatio );
+      }
+
+      // Hack to avoid warning display
+      renderer.context.getShaderInfoLog = function () { return '' };
+    }
+
     // Create a dat.gui interface to control bones
     function createGui(){
       // Create an empty interface
@@ -860,7 +874,30 @@
       // Append gui to renderer dom element
       //renderer.domElement.appendChild(gui.domElement);
 
-      //
+      // Renderer settings
+      var RendererSettings = {
+        pixelRatio: renderer.getPixelRatio(),
+        setPixelRatio: function(){
+          renderer.setPixelRatio(this.pixelRatio);
+
+          // Enable antialias
+          if(this.pixelRatio === 2){
+            createRenderer(true);
+          }
+        }
+      };
+
+      // Add change of pixel ratio
+      gui.add(RendererSettings, "pixelRatio", {
+        "EXTREMELY FAST": 0.1,
+        "ULTRA FAST": 0.25,
+        "FAST": 0.5,
+        "NORMAL": 1,
+        "AWESOME": 2
+      });
+      gui.add(RendererSettings, "setPixelRatio");
+
+      // Basic folder
       var masterFolder = gui.addFolder("Body");
       masterFolder.add(bonesArray[0].rotation, "y", -(Math.PI / 2), (Math.PI / 2)).step(Math.PI / 180);
       masterFolder.add(bonesArray[0].position, "y", 0, 200).step(1);
@@ -874,7 +911,7 @@
           var boneFolder = gui.addFolder("Leg " + j);
 
           // Add controler for rotation of this Leg
-          boneFolder.add(bonesArray[i].rotation, "z", -(Math.PI / 2), (Math.PI / 2)).step(Math.PI / 180);
+          boneFolder.add(bonesArray[i].rotation, "z", -(Math.PI), (Math.PI / 4)).step(Math.PI / 180);
         } else {
           // Create a folder for each bone
           var boneFolder = gui.addFolder("Arm " + j);
