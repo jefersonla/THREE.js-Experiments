@@ -458,8 +458,8 @@
       // TODO Add a different background color
       //scene.background = new THREE.Color( 0x72645b );
 
-      // TODO Add a fog enviroment at end
-      //scene.fog = new THREE.Fog( 0x72645b, 300, 450 );
+      // Add a fog enviroment at end
+      scene.fog = new THREE.Fog( 0x72645b, 500, 800 );
 
       // Create a new WebGLRenderer, set it's size and it's color
       createRenderer(false);
@@ -502,7 +502,7 @@
 
       // Create an spotlight, which can cast shadows
       var spotLight = new THREE.SpotLight( 0xffffff );
-      spotLight.position.set( 0, 200, 200 );
+      spotLight.position.set( 0, 500, 0 );
 
       // Enable shadow
       spotLight.castShadow = true;
@@ -850,7 +850,7 @@
 
       // Set some properties
       renderer.setSize(800, 500);
-      renderer.setClearColor(0xf5f5f5, 1);
+      renderer.setClearColor(0x72645b, 1);
 			renderer.gammaInput = true;
 			renderer.gammaOutput = true;
 			renderer.shadowMap.enabled = true;
