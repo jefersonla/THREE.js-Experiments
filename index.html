@@ -644,9 +644,9 @@
       // Add a mouse controller for this scene
       controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-      // Disable vertical rotation
-      controls.maxAzimuthAngle = 0;
-      controls.minAzimuthAngle = 0;
+      // Disable vertical rotation below ground plane
+      controls.maxPolarAngle = Math.PI/2 - 0.1;
+      controls.minPolarAngle = -Math.PI/2;
 
       // Add an event listener to reset camera position
       document.addEventListener('keypress', (event) => {
