@@ -15,18 +15,27 @@
       display: flex;
       align-items: center;
     }
-		canvas {
+		#canvasRenderer {
       margin: 0 auto;
+      /*
       width: 800px !important;
       height: 500px !important;
+      */
+      width: 100% !important;
+      height: 100% !important;
     }
 	</style>
 </head>
 
 <body>
 
-  <script src="js/dat.gui.js"></script>
+  <!-- Libraries -->
   <script src="js/three.js"></script>
+  <script src="js/stats.js"></script>
+  <script src="js/dat.gui.js"></script>
+
+  <!-- Three.js Extensions -->
+  <script src="js/Detector.js"></script>
   <script src="js/STLLoader.js"></script>
   <script src="js/OrbitControls.js"></script>
 
@@ -35,17 +44,21 @@
     // Enable Visual Debug
     var VISUAL_DEBUG = false;
 
+    // Check if we have webgl
+    if (!Detector.webgl) Detector.addGetWebGLMessage();
+
     // Global objects
-    var camera,
+    var renderer = null,
+        camera,
         scene,
-        renderer,
         controls,
         axes,
         groundPlane,
         meshObjects,
         bonesArray,
         bonesArticulations,
-        quadrupedSkeleton;
+        quadrupedSkeleton,
+        stats;
 
     // Box Helpers
     var boxHelperVector = [];
@@ -465,13 +478,15 @@
       createRenderer(false);
 
       // Create a new camera
-      camera = new THREE.PerspectiveCamera(50, 800 / 500, 1, 10000);
+      //camera = new THREE.PerspectiveCamera(50, 800 / 500, 1, 10000);
+      camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);
       camera.position.set(0, 150, 250);
       camera.lookAt(scene.position);
 
       // Create a fake camera and render a custom frame just to update projection matrix
       // of this camera and project the camera helper accordily
-      var fakeCamera = new THREE.PerspectiveCamera(50, 800 / 500, 1, 10000);
+      //var fakeCamera = new THREE.PerspectiveCamera(50, 800 / 500, 1, 10000);
+      var fakeCamera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);
       fakeCamera.position.set(0, 150, 250);
       fakeCamera.lookAt(scene.position);
       renderer.render(scene, fakeCamera);
@@ -638,8 +653,9 @@
         loader.load(objsToLoad[stlObj].path, loadSTL(stlObj));
       }
 
-      // Append the dom element to page
-      document.body.appendChild(renderer.domElement);
+      // Create perfomance stats
+      stats = new Stats();
+			document.body.appendChild( stats.dom );
 
       // Add a mouse controller for this scene
       controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -670,8 +686,8 @@
     // Animate scene
     function animate(){
 
-      // Request this animation frame recursively
-      requestAnimationFrame(animate);
+      // Initialize stats
+      stats.begin();
 
       // Update controls
       controls.update();
@@ -685,6 +701,12 @@
 
       // Re-render this scene
       render();
+
+      // End of monitored stats
+      stats.end();
+
+      // Request this animation frame recursively
+      requestAnimationFrame(animate);
     }
 
     // Render scene content
@@ -836,6 +858,14 @@
 
     // Create a renderer
     function createRenderer(enableAntiAlias){
+      // Delete dom renderer element from page if it's already exist
+      var recreateDom = false;
+      if(renderer !== null){
+        console.log("Recreating renderer dom");
+        recreateDom = true;
+        renderer.domElement.parentElement.removeChild(renderer.domElement);
+      }
+
       // Enable anti alias
       if(enableAntiAlias){
         // Create renderer and set some properties
@@ -849,7 +879,8 @@
       }
 
       // Set some properties
-      renderer.setSize(800, 500);
+      //renderer.setSize(800, 500);
+      renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setClearColor(0x72645b, 1);
 			renderer.gammaInput = true;
 			renderer.gammaOutput = true;
@@ -864,6 +895,26 @@
 
       // Hack to avoid warning display
       renderer.context.getShaderInfoLog = function () { return '' };
+
+      // Add an id for the renderer dom element
+      renderer.domElement.id = "canvasRenderer";
+
+      // Append the dom element to page
+      document.body.appendChild(renderer.domElement);
+
+      // If we have recreated dom update orbit controls
+      if(recreateDom){
+        // Disable last controls
+        controls.reset();
+        controls.enabled = false;
+
+        // Add a mouse controller for this scene
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+        // Disable vertical rotation below ground plane
+        controls.maxPolarAngle = Math.PI/2 - 0.1;
+        controls.minPolarAngle = -Math.PI/2;
+      }
     }
 
     // Create a dat.gui interface to control bones
@@ -877,17 +928,27 @@
       // Renderer settings
       var RendererSettings = {
         pixelRatio: renderer.getPixelRatio(),
+        enableAntiAlias: false,
+        lastEnable: false,
         setPixelRatio: function(){
+          // Change renderer pixel ratio
           renderer.setPixelRatio(this.pixelRatio);
 
-          // Enable antialias
-          if(this.pixelRatio === 2){
-            createRenderer(true);
+          // Check if lastEnable is being maintaned otherwise recreate renderer
+          if(this.enableAntiAlias !== this.lastEnable){
+            this.lastEnable = this.enableAntiAlias;
+
+            // Enable or disable antialias
+            createRenderer(this.enableAntiAlias);
           }
+        },
+        resetControls: function(){
+          // Reset orbit controls
+          controls.reset();
         }
       };
 
-      // Add change of pixel ratio
+      // Add different configurations of pixel ratio
       gui.add(RendererSettings, "pixelRatio", {
         "EXTREMELY ULTRA FAST": 0.1,
         "ULTRA FAST": 0.25,
@@ -897,7 +958,15 @@
         "GOOD": 1,
         "AWESOME": 2
       });
+
+      // Add option to enable or disable anti alias
+      gui.add(RendererSettings, "enableAntiAlias");
+
+      // Change pixel ratio
       gui.add(RendererSettings, "setPixelRatio");
+
+      // Add option to enable disable antialias
+      gui.add(RendererSettings, "resetControls");
 
       // Basic folder
       var masterFolder = gui.addFolder("Body");
