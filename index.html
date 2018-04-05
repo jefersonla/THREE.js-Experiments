@@ -930,7 +930,7 @@
         pixelRatio: renderer.getPixelRatio(),
         enableAntiAlias: false,
         lastEnable: false,
-        setPixelRatio: function(){
+        setConfig: function(){
           // Change renderer pixel ratio
           renderer.setPixelRatio(this.pixelRatio);
 
@@ -963,37 +963,48 @@
       gui.add(RendererSettings, "enableAntiAlias");
 
       // Change pixel ratio
-      gui.add(RendererSettings, "setPixelRatio");
+      gui.add(RendererSettings, "setConfig");
 
       // Add option to enable disable antialias
       gui.add(RendererSettings, "resetControls");
 
       // Basic folder
       var masterFolder = gui.addFolder("Body");
-      masterFolder.add(bonesArray[0].rotation, "y", -(Math.PI / 2), (Math.PI / 2)).step(Math.PI / 180);
-      masterFolder.add(bonesArray[0].position, "y", 0, 200).step(1);
+      masterFolder.add(bonesArray[0].rotation, "y", -(Math.PI / 2), (Math.PI / 2))
+                  .step(Math.PI / 180)
+                  .name("Body Rotation");
+      masterFolder.add(bonesArray[0].position, "y", -35, 200)
+                  .step(1)
+                  .name("Body Height");
 
-      // Add controller to every bone rotation
-      for(var i = 1, j = 1; i < bonesArray.length; i++, j++){
-        // Create controllers from 0 to 180 of rotion of each bone
-        if(i % 2 === 0){
-          // Create a folder for each bone
-          j--;
-          var boneFolder = gui.addFolder("Leg " + j);
+      // Folder names
+      var folderNames = [
+        "FrontLeft",
+        "BackLeft",
+        "FrontRight",
+        "BackRight"
+      ];
 
-          // Add controler for rotation of this Leg
-          boneFolder.add(bonesArray[i].rotation, "z", -(Math.PI), (Math.PI / 4)).step(Math.PI / 180);
+      // Create controllers from 0 to 180 of rotion of each bone
+      for(var i = 1, j = 1; i < bonesArray.length; i += 2, j++){
+        // Create a folder for each bone
+        var boneFolder = gui.addFolder("Arm / Leg - " + folderNames[j - 1]);
+
+        // Add controler for rotation of arm
+        if(j <= 2){
+          boneFolder.add(bonesArray[i].rotation, "y", -(Math.PI / 2), (Math.PI / 2))
+                    .step(Math.PI / 180)
+                    .name("Arm Rotation");
         } else {
-          // Create a folder for each bone
-          var boneFolder = gui.addFolder("Arm " + j);
-
-          // Add controler for rotation of this Leg
-          if(j <= 2){
-            boneFolder.add(bonesArray[i].rotation, "y", -(Math.PI / 2), (Math.PI / 2)).step(Math.PI / 180);
-          } else {
-            boneFolder.add(bonesArray[i].rotation, "y", (Math.PI / 2), Math.PI * 1.5).step(Math.PI / 180);
-          }
+          boneFolder.add(bonesArray[i].rotation, "y", (Math.PI / 2), Math.PI * 1.5)
+                    .step(Math.PI / 180)
+                    .name("Arm Rotation");
         }
+
+        // Add controler for rotation of this leg
+        boneFolder.add(bonesArray[i + 1].rotation, "z", -(Math.PI), (Math.PI / 4))
+                  .step(Math.PI / 180)
+                  .name("Leg Rotation");
       }
     }
 
