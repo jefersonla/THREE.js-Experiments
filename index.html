@@ -308,7 +308,7 @@
         path: "./parts/sg90Servo.stl",
         groups: ["servoModel"],
         color: null,
-        materialName: "Servo",
+        materialName: "Servos",
         properties: {
           position: {
             x: -9.85,
@@ -326,7 +326,7 @@
         path: "./parts/servoBottom.stl",
         groups: ["servoModel"],
         color: null,
-        materialName: "Servo",
+        materialName: "Servos",
         properties: {
           position: {
             x: 5.3,
@@ -344,7 +344,7 @@
         path: "./parts/servoSupport.stl",
         groups: ["servoSupport"],
         color: 0x37EA10,
-        materialName: "ServoSupport",
+        materialName: "ServoSupports",
         properties: {
           position: {
             x: 5.4,
@@ -367,7 +367,7 @@
         path: "./parts/servoSupport.stl",
         groups: ["servoSupport"],
         color: 0x37EA10,
-        materialName: "ServoSupport",
+        materialName: "ServoSupports",
         properties: {
           position: {
             x: -13.2,
@@ -390,7 +390,7 @@
         path: "./parts/leg.stl",
         groups: ["legSupport"],
         color: 0xEA9610,
-        materialName: "Leg",
+        materialName: "Legs",
         properties: {
           position: {
             x: 5,
@@ -977,9 +977,6 @@
         enableAntiAlias: false,
         lastEnable: false,
         setConfig: function(){
-          // Change renderer pixel ratio
-          renderer.setPixelRatio(this.pixelRatio);
-
           // Check if lastEnable is being maintaned otherwise recreate renderer
           if(this.enableAntiAlias !== this.lastEnable){
             this.lastEnable = this.enableAntiAlias;
@@ -987,6 +984,9 @@
             // Enable or disable antialias
             createRenderer(this.enableAntiAlias);
           }
+
+          // Change renderer pixel ratio
+          renderer.setPixelRatio(this.pixelRatio);
         },
         resetCamera: function(){
           // Reset orbit controls
