@@ -42,7 +42,7 @@
 
 	<script>
 
-    ////// EXPERIMENTAL PHYSICS
+    ////// EXPERIMENTAL PHYSICS WITH OIMO
     var world = new OIMO.World( {info:true, worldscale:100} );
     var ground = world.add({size:[1000, 1, 1000], pos:[0,-1,0]});
 
@@ -54,6 +54,7 @@
 
     // Global objects
     var renderer = null,
+        materials = {},
         camera,
         scene,
         controls,
@@ -307,6 +308,7 @@
         path: "./parts/sg90Servo.stl",
         groups: ["servoModel"],
         color: null,
+        materialName: "Servo",
         properties: {
           position: {
             x: -9.85,
@@ -324,6 +326,7 @@
         path: "./parts/servoBottom.stl",
         groups: ["servoModel"],
         color: null,
+        materialName: "Servo",
         properties: {
           position: {
             x: 5.3,
@@ -341,6 +344,7 @@
         path: "./parts/servoSupport.stl",
         groups: ["servoSupport"],
         color: 0x37EA10,
+        materialName: "ServoSupport",
         properties: {
           position: {
             x: 5.4,
@@ -363,6 +367,7 @@
         path: "./parts/servoSupport.stl",
         groups: ["servoSupport"],
         color: 0x37EA10,
+        materialName: "ServoSupport",
         properties: {
           position: {
             x: -13.2,
@@ -385,6 +390,7 @@
         path: "./parts/leg.stl",
         groups: ["legSupport"],
         color: 0xEA9610,
+        materialName: "Leg",
         properties: {
           position: {
             x: 5,
@@ -402,6 +408,7 @@
         path: "./parts/bodyCover.stl",
         groups: ["bodyCover"],
         color: 0x3010EA,
+        materialName: "BodyUp",
         properties: {
           position: {
             x: 0,
@@ -419,6 +426,7 @@
         path: "./parts/body.stl",
         groups: ["bodyCover"],
         color: 0x8710EA,
+        materialName: "BodyMiddle",
         properties: {
           position: {
             x: 0,
@@ -436,6 +444,7 @@
         path: "./parts/bodyBottom.stl",
         groups: ["bodyCover"],
         color: 0x3010EA,
+        materialName: "BodyBottom",
         properties: {
           position: {
             x: 0,
@@ -564,24 +573,25 @@
 
         return ((geometry) => {
 
-          // Create material which is the apparence of the object
-          var material;
-          if (objsToLoad[objName].color !== null){
-            material = new THREE.MeshPhongMaterial({
-              color: objsToLoad[objName].color,
-              specular: 0x111111,
-              shininess: 200
-            });
-          } else {
-            material = new THREE.MeshPhongMaterial({
-              color: 0xCCC,
-              specular: 0x111111,
-              shininess: 200
-            });
+          // Create material which is the apparence of the object, if it don't exist
+          if(materials[objsToLoad[objName].materialName] === null || materials[objsToLoad[objName].materialName] === undefined){
+            if (objsToLoad[objName].color !== null){
+              materials[objsToLoad[objName].materialName] = new THREE.MeshPhongMaterial({
+                color: objsToLoad[objName].color,
+                specular: 0x111111,
+                shininess: 200
+              });
+            } else {
+              materials[objsToLoad[objName].materialName] = new THREE.MeshPhongMaterial({
+                color: 0xCCC,
+                specular: 0x111111,
+                shininess: 200
+              });
+            }
           }
 
           // Join geometry and it's material to create the mesh
-          var mesh = new THREE.Mesh(geometry, material);
+          var mesh = new THREE.Mesh(geometry, materials[objsToLoad[objName].materialName]);
 
           // Add shadow to the mesh
           mesh.castShadow = true;
@@ -1082,6 +1092,32 @@
                   .listen()
                   .name("Leg Rotation")
       }
+
+      // Colors folder
+      var colorsFolder = gui.addFolder("Material Colors");
+
+      // Material Colors object
+      var MaterialColors = {};
+
+      // For each material object add a color controller
+      for(let materialName in materials){
+        // Convert from object to array of RGB colors
+        MaterialColors[materialName] = [
+          materials[materialName].color.r * 255,
+          materials[materialName].color.g * 255,
+          materials[materialName].color.b * 255
+        ];
+
+        // Add option to change this color
+        colorsFolder.addColor(MaterialColors, materialName)
+                    .onChange((value) => {
+                      materials[materialName].color.r = value[0] / 255;
+                      materials[materialName].color.g = value[1] / 255;
+                      materials[materialName].color.b = value[2] / 255;
+                    })
+                    .listen();
+      }
+
     }
 
     // Return true if it's mobile and false otherwise
