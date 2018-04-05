@@ -28,7 +28,7 @@
   <script src="js/dat.gui.js"></script>
   <script src="js/three.js"></script>
   <script src="js/STLLoader.js"></script>
-  <script src="js/TrackballControls.js"></script>
+  <script src="js/OrbitControls.js"></script>
 
 	<script>
 
@@ -642,11 +642,11 @@
       document.body.appendChild(renderer.domElement);
 
       // Add a mouse controller for this scene
-      controls = new THREE.TrackballControls(camera, renderer.domElement);
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
 
       // Disable vertical rotation
-      controls.minPolarAngle = 1;
-      controls.maxPolarAngle = 1;
+      controls.maxAzimuthAngle = 0;
+      controls.minAzimuthAngle = 0;
 
       // Add an event listener to reset camera position
       document.addEventListener('keypress', (event) => {
