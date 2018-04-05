@@ -512,7 +512,7 @@
       spotLight.shadow.mapSize.height = 1024;
 
       // Configure shadow
-      spotLight.shadow.camera.near = 2;
+      spotLight.shadow.camera.near = 200;
       spotLight.shadow.camera.far = 800;
       spotLight.shadow.camera.fov = 1;
 
@@ -857,7 +857,7 @@
 
       // Check if we have a mobile, and decrease pixel ratio to improve perfomance
       if(mobilecheck()){
-        renderer.setPixelRatio( 0.5 );
+        renderer.setPixelRatio( 0.6 );
       } else {
         renderer.setPixelRatio( window.devicePixelRatio );
       }
