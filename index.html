@@ -55,24 +55,6 @@
       gravity: [0,-9.8,0]
     });
 
-    // Create a ground plane
-    var ground = world.add({
-      type:'plane',
-      pos:[0,0,0],
-      density:1,
-      friction:0.9,
-      restitution:0.1
-    });
-
-    // Mesh collider material
-    var meshColliderMaterial = new THREE.MeshPhongMaterial({
-      color: 0x333333,
-      specular: 0x111111,
-      shininess: 200,
-      opacity: 0.5,
-      transparent: true
-    });
-
     // Default object configurations
     var physicConfig = [
       1, // The density of the shape.
@@ -82,16 +64,41 @@
       0xffffffff // The bits of the collision groups with which the shape collides.
     ];
 
+    // Create a ground plane
+    var ground = world.add({
+      size:[400, 2, 400],
+      pos: [0, -1, 0],
+      config: physicConfig
+    });
+
+
+    // Mesh collider material
+    var meshColliderMaterial = new THREE.MeshPhongMaterial({
+      color: 0x333333,
+      specular: 0x111111,
+      shininess: 200,
+      opacity: 0.9,
+      transparent: true
+    });
+
     // False collider to help with orientation and DEBUG
     var bufferBoxGeometry = new THREE.BufferGeometry();
-    bufferBoxGeometry.fromGeometry(new THREE.BoxGeometry(100, 100, 100));
-    var test = new THREE.Mesh( bufferBoxGeometry, meshColliderMaterial );
+    bufferBoxGeometry.fromGeometry(new THREE.BoxGeometry(50, 50, 50));
+    var test1 = new THREE.Mesh( bufferBoxGeometry, meshColliderMaterial );
+    test1.position.y=100;
+
+    bufferBoxGeometry = bufferBoxGeometry.clone();
+    bufferBoxGeometry.fromGeometry(new THREE.BoxGeometry(400, 2.01, 400));
+    var test2 = new THREE.Mesh( bufferBoxGeometry, meshColliderMaterial );
+    test2.position.y = -1;
+
+    var test = new THREE.Group();
 
     // Create colliders for this test structure
     var testCollider = world.add({
       type: 'box',
-      size: [100, 100, 100],
-      pos: [0, 0, 0],
+      size: [50, 50, 50],
+      pos: [0, 100, 0],
       move: true,
       config: physicConfig
     });
@@ -135,6 +142,10 @@
       servoEnd: {
         time: 0.544,
         url: "./sounds/servo_end_mono.mp3"
+      },
+      plasticImpact: {
+        time: 0.368,
+        url: "./sounds/plastic_impact_mono.mp3"
       }
     };
 
@@ -553,7 +564,8 @@
       scene = new THREE.Scene();
 
       /// ------------ SCENE
-      scene.add(test);
+      scene.add(test1);
+      scene.add(test2);
       /// ------------ TEST
 
       // TODO Add a different background color
@@ -813,7 +825,8 @@
       world.step();
 
       // ----------------- PHYSICS
-      test.position.copy( testCollider.getPosition() );
+      test1.position.copy( testCollider.getPosition() );
+      test1.quaternion.copy( testCollider.getQuaternion() );
       // -----------------
 
       // Update box helpers in scene
