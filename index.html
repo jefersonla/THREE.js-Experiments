@@ -43,8 +43,60 @@
 	<script>
 
     ////// EXPERIMENTAL PHYSICS WITH OIMO
-    var world = new OIMO.World( {info:true, worldscale:100} );
-    var ground = world.add({size:[1000, 1, 1000], pos:[0,-1,0]});
+
+    // Create an world
+    var world = new OIMO.World({
+      timestep: 1/60,
+      iterations: 8,
+      broadphase: 2, // 1 brute force, 2 sweep and prune, 3 volume tree
+      worldscale: 100, // scale full world
+      random: true,  // randomize sample
+      info: false,   // calculate statistic or not
+      gravity: [0,-9.8,0]
+    });
+
+    // Create a ground plane
+    var ground = world.add({
+      type:'plane',
+      pos:[0,0,0],
+      density:1,
+      friction:0.9,
+      restitution:0.1
+    });
+
+    // Mesh collider material
+    var meshColliderMaterial = new THREE.MeshPhongMaterial({
+      color: 0x333333,
+      specular: 0x111111,
+      shininess: 200,
+      opacity: 0.5,
+      transparent: true
+    });
+
+    // Default object configurations
+    var physicConfig = [
+      1, // The density of the shape.
+      0.4, // The coefficient of friction of the shape.
+      0.2, // The coefficient of restitution of the shape.
+      1, // The bits of the collision groups to which the shape belongs.
+      0xffffffff // The bits of the collision groups with which the shape collides.
+    ];
+
+    // False collider to help with orientation and DEBUG
+    var bufferBoxGeometry = new THREE.BufferGeometry();
+    bufferBoxGeometry.fromGeometry(new THREE.BoxGeometry(100, 100, 100));
+    var test = new THREE.Mesh( bufferBoxGeometry, meshColliderMaterial );
+
+    // Create colliders for this test structure
+    var testCollider = world.add({
+      type: 'box',
+      size: [100, 100, 100],
+      pos: [0, 0, 0],
+      move: true,
+      config: physicConfig
+    });
+
+    // ----------------------------------------------------------
 
     // Enable Visual Debug
     var VISUAL_DEBUG = false;
@@ -55,6 +107,7 @@
     // Global objects
     var renderer = null,
         materials = {},
+        soundBufferArray = {},
         camera,
         scene,
         controls,
@@ -68,6 +121,22 @@
 
     // Box Helpers
     var boxHelperVector = [];
+
+    // Sounds objects
+    var soundsToLoad = {
+      servoStart: {
+        time: 0.258,
+        url: "./sounds/servo_start_mono.mp3"
+      },
+      servo: {
+        time: 0.154,
+        url: "./sounds/servo_loop_mono.mp3"
+      },
+      servoEnd: {
+        time: 0.544,
+        url: "./sounds/servo_end_mono.mp3"
+      }
+    };
 
     // Groups are collection of meshs
     var meshGroups = {
@@ -462,7 +531,8 @@
 
     // Size of objsToLoad
     // <3 https://stackoverflow.com/questions/126100/how-to-efficiently-count-the-number-of-keys-properties-of-an-object-in-javascrip
-    var objsToLoadSize = Object.keys(objsToLoad).length;
+    var objsToLoadSize = Object.keys(objsToLoad).length +
+                         Object.keys(soundsToLoad).length;
 
     // Box3 Temp reusable object
     // <3 https://stackoverflow.com/questions/41459512/from-boundingboxhelper-to-boxhelper
@@ -481,6 +551,10 @@
 
       // Create a new scene
       scene = new THREE.Scene();
+
+      /// ------------ SCENE
+      scene.add(test);
+      /// ------------ TEST
 
       // TODO Add a different background color
       //scene.background = new THREE.Color( 0x72645b );
@@ -531,7 +605,7 @@
 
       // Create an spotlight, which can cast shadows
       var spotLight = new THREE.SpotLight( 0xffffff );
-      spotLight.position.set( 0, 500, 0 );
+      spotLight.position.set( 0, 700, 0 );
 
       // Enable shadow
       spotLight.castShadow = true;
@@ -555,7 +629,7 @@
       }
 
       // Create the loader for STL files
-      var loader = new THREE.STLLoader();
+      var stlLoader = new THREE.STLLoader();
 
       // Add a plane to represent ground on this scene
       var planeGeometry = new THREE.PlaneBufferGeometry(4000, 4000, 32, 32);
@@ -665,12 +739,37 @@
       // Load all stl files in the desired position
       for(let stlObj in objsToLoad){
         console.log("Loading - " + objsToLoad[stlObj].path);
-        loader.load(objsToLoad[stlObj].path, loadSTL(stlObj));
+        stlLoader.load(objsToLoad[stlObj].path, loadSTL(stlObj));
+      }
+
+      // Create an audio loader which will load audio files
+      var audioLoader = new THREE.AudioLoader();
+
+      // Loader object
+      function loadSound(objName){
+        return ((soundBuffer) => {
+          // Just store the soundBuffer in a array
+          soundBufferArray[objName] = soundBuffer;
+
+          // Increment counter of loaded objects
+          LOADED_OBJECTS_NUMBER++;
+
+          // If all objects are loaded then call function to organize groups
+          if(LOADED_OBJECTS_NUMBER === objsToLoadSize){
+            organizeGroups();
+          }
+        });
+      }
+
+      // Load all sounds files
+      for(let soundObj in soundsToLoad){
+        console.log("Loading - " + soundsToLoad[soundObj].url);
+        audioLoader.load(soundsToLoad[soundObj].url, loadSound(soundObj));
       }
 
       // Create perfomance stats
       stats = new Stats();
-			document.body.appendChild( stats.dom );
+			document.body.appendChild(stats.dom);
 
       // Add a mouse controller for this scene
       controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -709,6 +808,13 @@
 
       // Update controls
       controls.update();
+
+      // Update world
+      world.step();
+
+      // ----------------- PHYSICS
+      test.position.copy( testCollider.getPosition() );
+      // -----------------
 
       // Update box helpers in scene
       if(VISUAL_DEBUG){
@@ -905,7 +1011,7 @@
 			renderer.shadowMap.enabled = true;
 
       // Check if we have a mobile, and decrease pixel ratio to improve perfomance
-      if(mobilecheck()){
+      if(mobileCheck()){
         renderer.setPixelRatio( 0.6 );
       } else {
         renderer.setPixelRatio( window.devicePixelRatio );
@@ -942,6 +1048,9 @@
 
       // Append gui to renderer dom element
       //renderer.domElement.appendChild(gui.domElement);
+
+      // If we are on a mobile like an smartphone duplicate width of the gui
+      //gui.width = gui.width * 2;
 
       // Bones rotation backup
       var bonesRotationBackup = [];
@@ -1130,7 +1239,7 @@
 
     // Return true if it's mobile and false otherwise
     // <3 https://stackoverflow.com/questions/11381673/detecting-a-mobile-browser
-    function mobilecheck (){
+    function mobileCheck (){
       if( navigator.userAgent.match(/Android/i)
          || navigator.userAgent.match(/webOS/i)
          || navigator.userAgent.match(/iPhone/i)
