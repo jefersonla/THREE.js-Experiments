@@ -42,71 +42,11 @@
 
 	<script>
 
-    ////// EXPERIMENTAL PHYSICS WITH OIMO
-
-    // Create an world
-    var world = new OIMO.World({
-      timestep: 1/60,
-      iterations: 8,
-      broadphase: 2, // 1 brute force, 2 sweep and prune, 3 volume tree
-      worldscale: 100, // scale full world
-      random: true,  // randomize sample
-      info: false,   // calculate statistic or not
-      gravity: [0,-9.8,0]
-    });
-
-    // Default object configurations
-    var physicConfig = [
-      1, // The density of the shape.
-      0.4, // The coefficient of friction of the shape.
-      0.2, // The coefficient of restitution of the shape.
-      1, // The bits of the collision groups to which the shape belongs.
-      0xffffffff // The bits of the collision groups with which the shape collides.
-    ];
-
-    // Create a ground plane
-    var ground = world.add({
-      size:[400, 2, 400],
-      pos: [0, -1, 0],
-      config: physicConfig
-    });
-
-
-    // Mesh collider material
-    var meshColliderMaterial = new THREE.MeshPhongMaterial({
-      color: 0x333333,
-      specular: 0x111111,
-      shininess: 200,
-      opacity: 0.9,
-      transparent: true
-    });
-
-    // False collider to help with orientation and DEBUG
-    var bufferBoxGeometry = new THREE.BufferGeometry();
-    bufferBoxGeometry.fromGeometry(new THREE.BoxGeometry(50, 50, 50));
-    var test1 = new THREE.Mesh( bufferBoxGeometry, meshColliderMaterial );
-    test1.position.y=100;
-
-    bufferBoxGeometry = bufferBoxGeometry.clone();
-    bufferBoxGeometry.fromGeometry(new THREE.BoxGeometry(400, 2.01, 400));
-    var test2 = new THREE.Mesh( bufferBoxGeometry, meshColliderMaterial );
-    test2.position.y = -1;
-
-    var test = new THREE.Group();
-
-    // Create colliders for this test structure
-    var testCollider = world.add({
-      type: 'box',
-      size: [50, 50, 50],
-      pos: [0, 100, 0],
-      move: true,
-      config: physicConfig
-    });
-
-    // ----------------------------------------------------------
-
     // Enable Visual Debug
     var VISUAL_DEBUG = false;
+
+    // Enable visualization of colliders
+    var DISPLAY_COLLIDERS = true;
 
     // Check if we have webgl
     if (!Detector.webgl) Detector.addGetWebGLMessage();
@@ -124,10 +64,63 @@
         bonesArray,
         bonesArticulations,
         quadrupedSkeleton,
-        stats;
+        stats,
+        world;
 
     // Box Helpers
     var boxHelperVector = [];
+
+    // Default physics configurations
+    var physicConfig = [
+      1, // The density of the shape.
+      0.4, // The coefficient of friction of the shape.
+      0.2, // The coefficient of restitution of the shape.
+      1, // The bits of the collision groups to which the shape belongs.
+      0xffffffff // The bits of the collision groups with which the shape collides.
+    ];
+
+    // Physics properties
+    var allJoints = {};
+    var colliders = [];
+    var collidersHelpers = [];
+    var meshColliderMaterial = {};
+    var collidersToCreate = {
+      testBox: {
+        type: 'box',
+        size: [20, 20, 20],
+        pos: [0, 300, 0],
+        move: true,
+        config: physicConfig
+      },
+      legFrontRight: {
+        type: 'box',
+        size: [17, 66, 10.4],
+        pos: [73, 33, 28.3],
+        move: true,
+        config: physicConfig
+      },
+      legBackRight: {
+        type: 'box',
+        size: [17, 66, 10.4],
+        pos: [73, 33, -25.3],
+        move: true,
+        config: physicConfig
+      },
+      legFrontLeft: {
+        type: 'box',
+        size: [17, 66, 10.4],
+        pos: [-73, 33, 25],
+        move: true,
+        config: physicConfig
+      },
+      legBackLeft: {
+        type: 'box',
+        size: [17, 66, 10.4],
+        pos: [-73, 33, -28.6],
+        move: true,
+        config: physicConfig
+      }
+    };
 
     // Sounds objects
     var soundsToLoad = {
@@ -553,9 +546,8 @@
     // Count number of objects loaded
     var LOADED_OBJECTS_NUMBER = 0;
 
-    // Init content and animate it's scene
+    // Init content
     init();
-    animate();
 
     // Init function
     function init(){
@@ -563,16 +555,11 @@
       // Create a new scene
       scene = new THREE.Scene();
 
-      /// ------------ SCENE
-      scene.add(test1);
-      scene.add(test2);
-      /// ------------ TEST
-
       // TODO Add a different background color
       //scene.background = new THREE.Color( 0x72645b );
 
       // Add a fog enviroment at end
-      scene.fog = new THREE.Fog( 0x72645b, 500, 800 );
+      scene.fog = new THREE.Fog( 0x72645b, 600, 900 );
 
       // Create a new WebGLRenderer, set it's size and it's color
       createRenderer(false);
@@ -824,10 +811,18 @@
       // Update world
       world.step();
 
-      // ----------------- PHYSICS
-      test1.position.copy( testCollider.getPosition() );
-      test1.quaternion.copy( testCollider.getQuaternion() );
-      // -----------------
+      // Update each collider add associated helper and mesh
+      for(var i = 0; i < colliders.length; i++){
+
+        // Change position and rotation of mesh associated with collider
+        // TODO
+
+        // If display of colliders is enabled change position of collider too
+        if(DISPLAY_COLLIDERS){
+          collidersHelpers[i].position.copy(colliders[i].getPosition());
+          collidersHelpers[i].quaternion.copy(colliders[i].getQuaternion());
+        }
+      }
 
       // Update box helpers in scene
       if(VISUAL_DEBUG){
@@ -982,13 +977,86 @@
 
           }
 
-          // Since now we have all the bones we can create the change interface
-          createGui();
-
           // Add group to scene
           scene.add(meshGroups[groupName].groupObject);
         }
 
+      }
+
+      // Since now we have all the bones we can create the change interface
+      createGui();
+
+      // After organize all groups all that is left to do is init the physics
+      initPhysics();
+
+      // Animate scene after initialize physics
+      animate();
+
+    }
+
+    // Initialize physics with oimo.js
+    function initPhysics(){
+
+      // Create an world
+      world = new OIMO.World({
+        timestep: 1/60,
+        iterations: 8,
+        broadphase: 2, // 1 brute force, 2 sweep and prune, 3 volume tree
+        worldscale: 100, // scale full world
+        random: true, // randomize sample
+        info: VISUAL_DEBUG, // calculate statistic or not
+        gravity: [0,-9.8,0]
+      });
+
+      // Create a ground plane
+      var ground = world.add({
+        size:[400, 1, 400],
+        pos: [0, -1, 0],
+        config: physicConfig
+      });
+
+      // Mesh collider material
+      meshColliderMaterial = new THREE.MeshPhongMaterial({
+        color: 0x333333,
+        specular: 0x111111,
+        shininess: 200,
+        opacity: 0.6,
+        transparent: true
+      });
+
+      // Create all colliders
+      for(let colliderName in collidersToCreate){
+        createCollider(colliderName, collidersToCreate[colliderName]);
+      }
+    }
+
+    // Create collider function
+    function createCollider(colliderName, configuration){
+
+      // Create colliders for this test structure
+      var tempCollider = world.add(configuration);
+
+      // Add this collider to vector of colliders
+      colliders.push(tempCollider);
+
+      // False mesh collider to help with orientation and DEBUG
+      if(DISPLAY_COLLIDERS){
+        // Create geometry of this helper
+        var bufferBoxGeometry = new THREE.BufferGeometry();
+        var boxGeometry = new THREE.BoxGeometry( configuration.size[0],
+                                                 configuration.size[1],
+                                                 configuration.size[2]);
+        bufferBoxGeometry.fromGeometry(boxGeometry);
+
+        // Create mesh of this helper
+        var colliderTempMesh = new THREE.Mesh( bufferBoxGeometry, meshColliderMaterial );
+        colliderTempMesh.position.copy( tempCollider.getPosition() );
+
+        // Add collider to scene
+        scene.add(colliderTempMesh);
+
+        // Copy this fake collider mesh to list of colliders helpers
+        collidersHelpers.push(colliderTempMesh);
       }
 
     }
